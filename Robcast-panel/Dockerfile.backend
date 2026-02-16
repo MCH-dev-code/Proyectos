@@ -1,0 +1,25 @@
+# Backend - Node.js
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copiar package.json e instalar dependencias
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci
+
+# Copiar código del backend
+COPY backend/ .
+
+# Exponer puerto
+EXPOSE 3001
+
+# Variables de entorno por defecto
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV DB_HOST=mysql
+ENV DB_USER=robcast_user
+ENV DB_PASSWORD=robcast_pass
+ENV DB_NAME=robcast_db
+
+# Iniciar servidor
+CMD ["npm", "start"]

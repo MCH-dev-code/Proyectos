@@ -1,0 +1,43 @@
+# Archivos local (no subir a Git)
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# IDE y editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+package-lock.json
+yarn.lock
+
+# Testing
+coverage/
+
+# Docker
+.dockerignore
+
+# Datos de BD (local)
+mysql_data/
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store

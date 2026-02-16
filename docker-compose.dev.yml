@@ -1,0 +1,84 @@
+# Robcast E-commerce - Docker Compose para Desarrollo Local
+
+version: '3.8'
+
+services:
+  # Base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: robcast-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_dev_123
+      MYSQL_DATABASE: robcast_db
+      MYSQL_USER: robcast_user
+      MYSQL_PASSWORD: robcast_password_dev_123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Robcast-panel/setup_database.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - robcast-dev
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Backend (Desarrollo - sin build optimizado)
+  api:
+    build:
+      context: ./Robcast-API
+      dockerfile: Dockerfile
+    container_name: robcast-api-dev
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: robcast_user
+      DB_PASSWORD: robcast_password_dev_123
+      DB_NAME: robcast_db
+      JWT_SECRET: secreto_dev_cambiar_en_produccion
+      API_PORT: 3001
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      # Hot reload del código
+      - ./Robcast-API/src:/app/src
+    networks:
+      - robcast-dev
+    restart: always
+    command: npm run dev
+
+  # Frontend React (Desarrollo - Vite)
+  frontend:
+    build:
+      context: ./Robcast
+      dockerfile: Dockerfile.dev
+    container_name: robcast-frontend-dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:3001
+    volumes:
+      # Hot reload de código
+      - ./Robcast/src:/app/src
+      - ./Robcast/index.html:/app/index.html
+    networks:
+      - robcast-dev
+    restart: always
+    command: npm run dev
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  robcast-dev:
+    driver: bridge

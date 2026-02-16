@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: robcast-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: robcast_db
+      MYSQL_USER: robcast_user
+      MYSQL_PASSWORD: robcast_password_123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Robcast-panel/setup_database.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - robcast-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Backend
+  api:
+    build:
+      context: ./Robcast-API
+      dockerfile: Dockerfile.prod
+    container_name: robcast-api
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: robcast_user
+      DB_PASSWORD: robcast_password_123
+      DB_NAME: robcast_db
+      JWT_SECRET: tu_secreto_super_seguro_cambiar_en_produccion
+      API_PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:80
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - robcast-network
+    restart: always
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./Robcast
+      dockerfile: Dockerfile
+    container_name: robcast-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:3001
+    networks:
+      - robcast-network
+    restart: always
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  robcast-network:
+    driver: bridge

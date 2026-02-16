@@ -1,0 +1,34 @@
+# Frontend - Build stage
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copiar package.json y instalar dependencias
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación
+RUN npm run build
+
+# Frontend - Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar servidor estático
+RUN npm install -g serve
+
+# Copiar archivos construidos del stage anterior
+COPY --from=build /app/dist ./dist
+
+# Exponer puerto
+EXPOSE 5173
+
+# Variables de entorno para conectarse al backend
+ENV VITE_BACKEND_URL=http://localhost:3001
+
+# Iniciar servidor
+CMD ["serve", "-s", "dist", "-l", "5173"]

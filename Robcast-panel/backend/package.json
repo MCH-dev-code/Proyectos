@@ -1,0 +1,25 @@
+{
+  "name": "robcast-backend",
+  "version": "1.0.0",
+  "description": "Backend de Robcast - Sistema de Gestión Empresarial",
+  "type": "module",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "node server.cjs"
+  },
+  "keywords": [
+    "robcast",
+    "backend",
+    "express",
+    "mysql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.17.1"
+  }
+}
