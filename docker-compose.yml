@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Base de datos MySQL
   mysql:
-    image: mysql:8.0
+    image: mysql:5.7
     container_name: robcast-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password_123
