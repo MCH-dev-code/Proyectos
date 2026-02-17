@@ -49,24 +49,33 @@ app.get('/health', (req, res) => {
   res.json({ status: 'API Robcast funcionando ✅', timestamp: new Date() });
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'API Robcast funcionando ✅', timestamp: new Date() });
+});
+
 // Rutas de autenticación (públicas)
 app.use('/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/auth'));
 
 // Rutas de productos (lectura pública)
 app.use('/productos', require('./routes/productos'));
+app.use('/api/productos', require('./routes/productos'));
 
 // ================================================================
 // RUTAS DE USUARIO (requieren autenticación básica)
 // ================================================================
 
 app.use('/usuarios', require('./routes/usuarios'));
+app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/ventas', require('./routes/ventas'));
+app.use('/api/ventas', require('./routes/ventas'));
 
 // ================================================================
 // RUTAS DE ADMINISTRACIÓN (requieren autenticación como admin)
 // ================================================================
 
 app.use('/admin', require('./routes/admin'));
+app.use('/api/admin', require('./routes/admin'));
 
 // ================================================================
 // MANEJO DE ERRORES

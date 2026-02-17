@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # BASE DE DATOS - MariaDB (Compatible MariaDB/MySQL)
+  # ============================================================
+  db:
+    image: mariadb:10.5
+    container_name: robcast-db-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${DB_NAME:-robcast_db}
+      MYSQL_USER: ${DB_USER:-robcast_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-robcast_password_123}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      # Script de inicialización opcional
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - robcast-network
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  # ============================================================
+  # API BACKEND - Node.js Express
+  # ============================================================
+  api:
+    build:
+      context: ./Robcast-API
+      dockerfile: Dockerfile
+    container_name: robcast-api-local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-robcast_user}
+      DB_PASSWORD: ${DB_PASSWORD:-robcast_password_123}
+      DB_NAME: ${DB_NAME:-robcast_db}
+      JWT_SECRET: ${JWT_SECRET:-jwt_secret_dev_insegura_cambiar_produccion}
+      API_PORT: 3001
+      FRONTEND_TIENDA_URL: http://localhost:5173
+      FRONTEND_PANEL_URL: http://localhost:5174
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - robcast-network
+    volumes:
+      - ./Robcast-API/src:/app/src
+      - ./Robcast-API/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # FRONTEND TIENDA - React + Vite (Puerto 5173)
+  # ============================================================
+  tienda:
+    build:
+      context: ./Robcast
+      dockerfile: Dockerfile
+    container_name: robcast-tienda-local
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+    depends_on:
+      - api
+    networks:
+      - robcast-network
+    volumes:
+      - ./Robcast/src:/app/src
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================
+  # FRONTEND PANEL ADMIN - React + Vite (Puerto 5174)
+  # ============================================================
+  panel:
+    build:
+      context: ./Robcast-panel
+      dockerfile: Dockerfile
+    container_name: robcast-panel-local
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+    depends_on:
+      - api
+    networks:
+      - robcast-network
+    volumes:
+      - ./Robcast-panel/src:/app/src
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ================================================================
+# VOLÚMENES
+# ================================================================
+volumes:
+  mariadb_data:
+    driver: local
+
+# ================================================================
+# RED
+# ================================================================
+networks:
+  robcast-network:
+    driver: bridge
