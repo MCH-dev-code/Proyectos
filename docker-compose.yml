@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # Base de datos MySQL
+  # Base de datos MariaDB (compatible con MySQL)
   mysql:
-    image: mysql:5.7
+    image: mariadb:10.5
     container_name: robcast-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password_123
@@ -18,7 +18,7 @@ services:
     networks:
       - robcast-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
