@@ -26,13 +26,13 @@ router.get('/productos', verificarAdmin, async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Obtener productos
-    const [productos] = await db.query(
+    const [productos] = await db.promise().query(
       'SELECT * FROM productos WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [limit, offset]
     );
 
     // Obtener total de productos
-    const [[{ total }]] = await db.query(
+    const [[{ total }]] = await db.promise().query(
       'SELECT COUNT(*) as total FROM productos WHERE deleted_at IS NULL'
     );
 
@@ -56,7 +56,7 @@ router.get('/productos/:id', verificarAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [[producto]] = await db.query(
+    const [[producto]] = await db.promise().query(
       'SELECT * FROM productos WHERE id = ? AND deleted_at IS NULL',
       [id]
     );
@@ -92,13 +92,13 @@ router.post('/productos',
       const imagenUrl = `/uploads/productos/${req.file.filename}`;
 
       // Insertar producto en BD
-      const [result] = await db.query(
+      const [result] = await db.promise().query(
         'INSERT INTO productos (nombre, precio, stock, descripcion, categoria, imagen, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
         [nombre, parseFloat(precio), parseInt(stock), descripcion || null, categoria, imagenUrl]
       );
 
       // Registrar auditoría
-      await db.query(
+      await db.promise().query(
         'INSERT INTO auditorias (usuario_id, entidad, entidad_id, accion, cambios) VALUES (?, ?, ?, ?, ?)',
         [req.usuario_id, 'productos', result.insertId, 'crear', JSON.stringify({ nombre, precio, stock, categoria })]
       );
@@ -135,7 +135,7 @@ router.put('/productos/:id',
       const { nombre, precio, stock, descripcion, categoria } = req.body;
 
       // Obtener producto actual
-      const [[producto]] = await db.query(
+      const [[producto]] = await db.promise().query(
         'SELECT * FROM productos WHERE id = ? AND deleted_at IS NULL',
         [id]
       );
@@ -155,7 +155,7 @@ router.put('/productos/:id',
       }
 
       // Actualizar producto
-      await db.query(
+      await db.promise().query(
         'UPDATE productos SET nombre = ?, precio = ?, stock = ?, descripcion = ?, categoria = ?, imagen = ?, updated_at = NOW() WHERE id = ?',
         [nombre, parseFloat(precio), parseInt(stock), descripcion || null, categoria, imagenUrl, id]
       );
@@ -166,7 +166,7 @@ router.put('/productos/:id',
         precio: { antes: producto.precio, despues: precio },
         stock: { antes: producto.stock, despues: stock }
       };
-      await db.query(
+      await db.promise().query(
         'INSERT INTO auditorias (usuario_id, entidad, entidad_id, accion, cambios) VALUES (?, ?, ?, ?, ?)',
         [req.usuario_id, 'productos', id, 'actualizar', JSON.stringify(cambios)]
       );
@@ -193,7 +193,7 @@ router.delete('/productos/:id', verificarAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [[producto]] = await db.query(
+    const [[producto]] = await db.promise().query(
       'SELECT * FROM productos WHERE id = ? AND deleted_at IS NULL',
       [id]
     );
@@ -203,13 +203,13 @@ router.delete('/productos/:id', verificarAdmin, async (req, res) => {
     }
 
     // Soft delete - marcar como eliminado
-    await db.query(
+    await db.promise().query(
       'UPDATE productos SET deleted_at = NOW() WHERE id = ?',
       [id]
     );
 
     // Registrar auditoría
-    await db.query(
+    await db.promise().query(
       'INSERT INTO auditorias (usuario_id, entidad, entidad_id, accion, cambios) VALUES (?, ?, ?, ?, ?)',
       [req.usuario_id, 'productos', id, 'eliminar', JSON.stringify({ nombre: producto.nombre })]
     );
@@ -253,7 +253,7 @@ router.get('/ventas', verificarAdmin, async (req, res) => {
     query += ' GROUP BY v.id ORDER BY v.created_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const [ventas] = await db.query(query, params);
+    const [ventas] = await db.promise().query(query, params);
 
     // Contar total
     let countQuery = 'SELECT COUNT(*) as total FROM ventas';
@@ -261,7 +261,7 @@ router.get('/ventas', verificarAdmin, async (req, res) => {
       countQuery += ' WHERE estado = ?';
     }
     const countParams = estado ? [estado] : [];
-    const [[{ total }]] = await db.query(countQuery, countParams);
+    const [[{ total }]] = await db.promise().query(countQuery, countParams);
 
     res.json({
       data: ventas,
@@ -284,7 +284,7 @@ router.get('/ventas/:id', verificarAdmin, async (req, res) => {
     const { id } = req.params;
 
     // Obtener venta main
-    const [[venta]] = await db.query(
+    const [[venta]] = await db.promise().query(
       `SELECT v.*, u.nombre, u.email, u.telefono, u.direccion
        FROM ventas v
        LEFT JOIN usuarios u ON v.usuario_id = u.id
@@ -297,7 +297,7 @@ router.get('/ventas/:id', verificarAdmin, async (req, res) => {
     }
 
     // Obtener items de la venta
-    const [items] = await db.query(
+    const [items] = await db.promise().query(
       `SELECT dv.*, p.nombre as producto_nombre, p.imagen
        FROM detalle_ventas dv
        LEFT JOIN productos p ON dv.producto_id = p.id
@@ -306,13 +306,13 @@ router.get('/ventas/:id', verificarAdmin, async (req, res) => {
     );
 
     // Obtener envío si existe
-    const [[envio]] = await db.query(
+    const [[envio]] = await db.promise().query(
       'SELECT * FROM envios WHERE venta_id = ?',
       [id]
     );
 
     // Obtener factura si existe
-    const [[factura]] = await db.query(
+    const [[factura]] = await db.promise().query(
       'SELECT * FROM facturas WHERE venta_id = ?',
       [id]
     );
@@ -342,15 +342,15 @@ router.put('/ventas/:id', verificarAdmin, async (req, res) => {
       });
     }
 
-    const [[venta]] = await db.query('SELECT * FROM ventas WHERE id = ?', [id]);
+    const [[venta]] = await db.promise().query('SELECT * FROM ventas WHERE id = ?', [id]);
     if (!venta) {
       return res.status(404).json({ error: 'Venta no encontrada' });
     }
 
-    await db.query('UPDATE ventas SET estado = ?, updated_at = NOW() WHERE id = ?', [estado, id]);
+    await db.promise().query('UPDATE ventas SET estado = ?, updated_at = NOW() WHERE id = ?', [estado, id]);
 
     // Registrar auditoría
-    await db.query(
+    await db.promise().query(
       'INSERT INTO auditorias (usuario_id, entidad, entidad_id, accion, cambios) VALUES (?, ?, ?, ?, ?)',
       [req.usuario_id, 'ventas', id, 'actualizar', JSON.stringify({ estado_anterior: venta.estado, estado_nuevo: estado })]
     );
@@ -373,32 +373,32 @@ router.put('/ventas/:id', verificarAdmin, async (req, res) => {
 router.get('/reportes/resumen', verificarAdmin, async (req, res) => {
   try {
     // Ingresos totales
-    const [[{ ingresos_totales = 0 }]] = await db.query(
+    const [[{ ingresos_totales = 0 }]] = await db.promise().query(
       'SELECT SUM(total) as ingresos_totales FROM ventas WHERE estado != "cancelada"'
     );
 
     // Total de ventas
-    const [[{ total_ventas = 0 }]] = await db.query(
+    const [[{ total_ventas = 0 }]] = await db.promise().query(
       'SELECT COUNT(*) as total_ventas FROM ventas WHERE estado != "cancelada"'
     );
 
     // Total de productos
-    const [[{ total_productos = 0 }]] = await db.query(
+    const [[{ total_productos = 0 }]] = await db.promise().query(
       'SELECT COUNT(*) as total_productos FROM productos WHERE deleted_at IS NULL'
     );
 
     // Total de clientes
-    const [[{ total_clientes = 0 }]] = await db.query(
+    const [[{ total_clientes = 0 }]] = await db.promise().query(
       'SELECT COUNT(*) as total_clientes FROM usuarios WHERE rol = "usuario"'
     );
 
     // Venta promedio
-    const [[{ venta_promedio = 0 }]] = await db.query(
+    const [[{ venta_promedio = 0 }]] = await db.promise().query(
       'SELECT AVG(total) as venta_promedio FROM ventas WHERE estado != "cancelada"'
     );
 
     // Stock bajo (< 10 unidades)
-    const [productos_bajo_stock] = await db.query(
+    const [productos_bajo_stock] = await db.promise().query(
       'SELECT id, nombre, stock FROM productos WHERE deleted_at IS NULL AND stock < 10 ORDER BY stock ASC LIMIT 5'
     );
 
@@ -430,7 +430,7 @@ router.get('/reportes/ventas-por-periodo', verificarAdmin, async (req, res) => {
       groupBy = "MONTH(v.created_at)";
     }
 
-    const [ventas] = await db.query(`
+    const [ventas] = await db.promise().query(`
       SELECT 
         ${groupBy} as fecha,
         COUNT(*) as ventas,
@@ -468,7 +468,7 @@ router.get('/clientes', verificarAdmin, async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    const [clientes] = await db.query(`
+    const [clientes] = await db.promise().query(`
       SELECT u.*, COUNT(v.id) as total_compras, SUM(v.total) as total_gastado
       FROM usuarios u
       LEFT JOIN ventas v ON u.id = v.usuario_id AND v.estado != 'cancelada'
@@ -478,7 +478,7 @@ router.get('/clientes', verificarAdmin, async (req, res) => {
       LIMIT ? OFFSET ?
     `, [limit, offset]);
 
-    const [[{ total }]] = await db.query(
+    const [[{ total }]] = await db.promise().query(
       'SELECT COUNT(*) as total FROM usuarios WHERE rol = "usuario"'
     );
 
@@ -505,7 +505,7 @@ router.post('/cupones', verificarAdmin, validarCupon, async (req, res) => {
   try {
     const { codigo, descripcion, tipo, valor, stock, valido_desde, valido_hasta } = req.body;
 
-    const [result] = await db.query(`
+    const [result] = await db.promise().query(`
       INSERT INTO cupones 
       (codigo, descripcion, tipo, valor, stock, valido_desde, valido_hasta, activo, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())
