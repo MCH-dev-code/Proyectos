@@ -2,6 +2,13 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 class ApiService {
+  // ===== FLYER DESTACADO =====
+  static async getFlyer() {
+    const response = await fetch(`${API_URL}/flyer`);
+    if (!response.ok) throw new Error('Error al obtener flyer');
+    return response.json();
+  }
+
   // ===== PRODUCTOS =====
   static async getProductos() {
     const response = await fetch(`${API_URL}/productos`);

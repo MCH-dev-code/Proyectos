@@ -5,7 +5,7 @@ import CategoryCards from "./CategoryCards";
 import Brands from "./Brands";
 import ProductCatalog from "./ProductCatalog";
 
-const Inicio = ({ onNavigate, onCategoryClick }) => {
+const Inicio = ({ onNavigate, onCategoryClick, onProductClickGoToTienda }) => {
   return (
     <div id="inicio">
       <main className="max-w-7xl mx-auto p-4 md:p-6">
@@ -27,7 +27,7 @@ const Inicio = ({ onNavigate, onCategoryClick }) => {
 
       <Brands />
 
-      <ProductCatalog />
+      <ProductCatalog onNavigateToTienda={onProductClickGoToTienda} disableInteractions={true} />
     </div>
   );
 };

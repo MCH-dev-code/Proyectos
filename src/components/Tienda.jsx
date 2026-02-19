@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { CarritoContext } from "../context/CarritoContext.jsx";
+import ApiService from "../services/ApiService.js";
 
 const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = null }) => {
   const { carrito, agregarAlCarrito, eliminarDelCarrito, actualizarCantidad, vaciarCarrito, totalCarrito, cantidadItems } = useContext(CarritoContext);
@@ -9,7 +10,44 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
   const [ordenamiento, setOrdenamiento] = useState("destacados");
   const [paginaActual, setPaginaActual] = useState(1);
   const [vista, setVista] = useState("todas"); // todas, ofertas, mas-vendidos, combos
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const productosPerPagina = 12;
+  
+  // Estado para productos desde la API
+  const [productos, setProductos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Cargar productos desde la API
+  useEffect(() => {
+    const cargarProductos = async () => {
+      try {
+        setCargando(true);
+        const data = await ApiService.getProductos();
+        // Mapear los datos de la API al formato esperado
+        const productosFormateados = data.map(p => ({
+          ...p,
+          precio: parseFloat(p.precio) || 0,
+          stock: parseInt(p.stock) || 0,
+          descripcion: p.descripcion || '',
+          categoria: p.categoria || 'General',
+          imagen: p.imagen || 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=300&fit=crop',
+          rating: 4.5, // Valor por defecto
+          esOferta: false,
+          esMasVendido: false,
+          esCombo: false
+        }));
+        setProductos(productosFormateados);
+        setError(null);
+      } catch (err) {
+        console.error('Error cargando productos:', err);
+        setError('Error al cargar productos');
+      } finally {
+        setCargando(false);
+      }
+    };
+    cargarProductos();
+  }, []);
 
   // Actualizar búsqueda cuando llega del Header
   useEffect(() => {
@@ -27,40 +65,45 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
     }
   }, [categoriaProp]);
 
-  const productos = [
-    // COMPUTADORAS
-    { id: 1, nombre: "Laptop Dell Inspiron 15", precio: 899, descuentoPrecio: 799, categoria: "Computadoras", imagen: "https://p2-ofp.static.pub/fes/cms/2022/10/10/9er9vj7fkv909z7mkyv8006u6m6q0n540450.png", stock: 5, descripcion: "Procesador i7, 8GB RAM, SSD 512GB", rating: 4.5, esOferta: true, esMasVendido: true },
-    { id: 2, nombre: "MacBook Pro 14\"", precio: 1999, categoria: "Computadoras", imagen: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=300&fit=crop", stock: 3, descripcion: "M3 Pro, 8GB RAM, 512GB SSD", rating: 5, esMasVendido: true, esCombo: true },
-    { id: 3, nombre: "Laptop HP Pavilion", precio: 729, descuentoPrecio: 649, categoria: "Computadoras", imagen: "https://images.unsplash.com/photo-1588872657840-18bfd7d1d910?w=300&h=300&fit=crop", stock: 8, descripcion: "Ryzen 5, 16GB RAM, SSD 256GB", rating: 4.2, esOferta: true },
-    { id: 4, nombre: "Lenovo ThinkPad X1", precio: 1299, categoria: "Computadoras", imagen: "https://images.unsplash.com/photo-1594642632303-c6ff1b52b326?w=300&h=300&fit=crop", stock: 4, descripcion: "i5, 16GB RAM, SSD 512GB", rating: 4.8, esMasVendido: true },
-    
-    // MONITORES
-    { id: 5, nombre: "Monitor LG 27\" 4K", precio: 399, descuentoPrecio: 349, categoria: "Monitores", imagen: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=300&h=300&fit=crop", stock: 10, descripcion: "UHD 4K, 60Hz, IPS Panel", rating: 4.6, esOferta: true, esCombo: true },
-    { id: 6, nombre: "Monitor Dell 24\" Full HD", precio: 199, categoria: "Monitores", imagen: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=300&h=300&fit=crop", stock: 15, descripcion: "1920x1080, 75Hz, 5ms", rating: 4.3, esMasVendido: true },
-    { id: 7, nombre: "Monitor ASUS 32\" Gaming", precio: 599, descuentoPrecio: 499, categoria: "Monitores", imagen: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=300&h=300&fit=crop", stock: 7, descripcion: "Curved, 144Hz, 1ms Response", rating: 4.9, esOferta: true },
-    { id: 8, nombre: "Monitor BenQ 27\" 240Hz", precio: 799, categoria: "Monitores", imagen: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=300&h=300&fit=crop", stock: 5, descripcion: "QHD 1440p, 240Hz", rating: 5 },
-    
-    // ACCESORIOS
-    { id: 9, nombre: "Teclado Mecánico RGB", precio: 129, categoria: "Accesorios", imagen: "https://images.unsplash.com/photo-1587829191301-7ac7ef1912cb?w=300&h=300&fit=crop", stock: 20, descripcion: "Switch Azul, Retroiluminado", rating: 4.7, esMasVendido: true },
-    { id: 10, nombre: "Mouse Logitech MX", precio: 99, categoria: "Accesorios", imagen: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=300&h=300&fit=crop", stock: 18, descripcion: "Inalámbrico, Recargable", rating: 4.8, esCombo: true },
-    { id: 11, nombre: "Webcam HD 1080p", precio: 89, descuentoPrecio: 69, categoria: "Accesorios", imagen: "https://images.unsplash.com/photo-1614008375890-cb53b6c5f8d5?w=300&h=300&fit=crop", stock: 12, descripcion: "Auto Focus, Micrófono", rating: 4.4, esOferta: true },
-    { id: 12, nombre: "Cable HDMI 3m", precio: 25, categoria: "Accesorios", imagen: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=300&h=300&fit=crop", stock: 50, descripcion: "4K 60Hz, certificado", rating: 4.5, esCombo: true },
-    
-    // IMPRESORAS
-    { id: 13, nombre: "Impresora Epson L3150", precio: 349, descuentoPrecio: 299, categoria: "Impresoras", imagen: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=300&h=300&fit=crop", stock: 6, descripcion: "Multifunción, Inyección tinta", rating: 4.6, esOferta: true, esMasVendido: true },
-    { id: 14, nombre: "Impresora HP LaserJet", precio: 499, categoria: "Impresoras", imagen: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=300&h=300&fit=crop", stock: 4, descripcion: "Láser, B/N, 40 ppm", rating: 4.7 },
-    { id: 15, nombre: "Escáner Fujitsu", precio: 299, categoria: "Impresoras", imagen: "https://images.unsplash.com/photo-1580274455191-1c62238fa333?w=300&h=300&fit=crop", stock: 8, descripcion: "30 ppm, Automático", rating: 4.5, esCombo: true },
-    
-    // BOCINAS
-    { id: 16, nombre: "Bocina JBL Xtreme", precio: 179, categoria: "Bocinas", imagen: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=300&fit=crop", stock: 11, descripcion: "Portátil, Impermeable, Batería 15h", rating: 4.8, esMasVendido: true },
-    { id: 17, nombre: "Sistema Sony 2.1", precio: 249, descuentoPrecio: 199, categoria: "Bocinas", imagen: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=300&fit=crop", stock: 9, descripcion: "Potencia 50W, Subwoofer", rating: 4.6, esOferta: true },
-    { id: 18, nombre: "Audífonos Samsung Galaxy", precio: 149, categoria: "Bocinas", imagen: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop", stock: 14, descripcion: "ANC, Bluetooth 5.2", rating: 4.7, esCombo: true },
-    
-    // SILLAS
-    { id: 19, nombre: "Silla Gamer Negro-Rojo", precio: 299, descuentoPrecio: 249, categoria: "Sillas", imagen: "https://images.unsplash.com/photo-1611269431281-e6fcae7ef0fb?w=300&h=300&fit=crop", stock: 7, descripcion: "Altura ajustable, Soporte lumbar", rating: 4.9, esOferta: true, esMasVendido: true },
-    { id: 20, nombre: "Silla Ejecutiva Negra", precio: 199, categoria: "Sillas", imagen: "https://images.unsplash.com/photo-1611269431281-e6fcae7ef0fb?w=300&h=300&fit=crop", stock: 10, descripcion: "Ergonómica, Brazos ajustables", rating: 4.5 },
-    { id: 21, nombre: "Silla Gamer Premium", precio: 499, categoria: "Sillas", imagen: "https://images.unsplash.com/photo-1611269431281-e6fcae7ef0fb?w=300&h=300&fit=crop", stock: 5, descripcion: "Cuero, Reclinable, Premium", rating: 5, esCombo: true },
-  ];
+  const handleCardKeyDown = (e, producto) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setSelectedProduct(producto);
+    }
+  };
+
+  const handleWhatsApp = (productName) => {
+    const message = `Hola, estoy interesado en el producto: ${productName}`;
+    const whatsappUrl = `https://wa.me/18095946269?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
+  // Mostrar loading
+  if (cargando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando productos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p className="text-xl mb-2">⚠️ {error}</p>
+          <button onClick={() => window.location.reload()} className="text-blue-600 underline">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Filtrados y ordenados
   let productosFiltrados = productos.filter((p) => {
@@ -95,7 +138,8 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
   const inicio = (paginaActual - 1) * productosPerPagina;
   const productosActuales = productosFiltrados.slice(inicio, inicio + productosPerPagina);
 
-  const categorias = ["Computadoras", "Monitores", "Accesorios", "Impresoras", "Bocinas", "Sillas"];
+  // Generar categorías dinámicamente desde los productos
+  const categorias = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
 
   return (
     <div id="tienda">
@@ -253,9 +297,13 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
                 {/* Grid de productos */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                   {productosActuales.map((producto) => (
-                    <div
+                    <article
+                      role="button"
+                      tabIndex={0}
                       key={producto.id}
-                      className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col"
+                      className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onClick={() => setSelectedProduct(producto)}
+                      onKeyDown={(e) => handleCardKeyDown(e, producto)}
                     >
                       {/* Imagen */}
                       <div className="relative h-40 md:h-48 bg-gray-100 overflow-hidden">
@@ -283,27 +331,26 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
                           )}
                         </div>
 
-</div>
+                      </div>
 
                       {/* Contenido */}
                       <div className="p-3 md:p-4 flex flex-col flex-grow">
                         <h3 className="text-xs md:text-sm font-bold text-gray-800 line-clamp-2 mb-1">
                           {producto.nombre}
                         </h3>
-                        <p className="text-xs text-gray-500 mb-2">{producto.descripcion}</p>
                         <p className="text-xs text-gray-600 mb-3">
                           Stock: <span className="font-bold text-green-600">{producto.stock}</span>
                         </p>
 
                         <button
-                          onClick={() => agregarAlCarrito(producto)}
+                          onClick={(e) => { e.stopPropagation(); agregarAlCarrito(producto); }}
                           disabled={producto.stock === 0}
                           className="mt-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-2 rounded text-xs font-bold transition"
                         >
                           🛒 Agregar
                         </button>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
 
@@ -402,6 +449,77 @@ const Tienda = ({ busquedaInicial = "", categoriaSeleccionada: categoriaProp = n
           </div>
         </div>
       </main>
+
+      {selectedProduct && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4"
+          onClick={() => setSelectedProduct(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setSelectedProduct(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="bg-gray-100 flex items-center justify-center p-6">
+                <img
+                  src={selectedProduct.imagen || "https://via.placeholder.com/400x400?text=Sin+Imagen"}
+                  alt={selectedProduct.nombre}
+                  className="object-contain max-h-80"
+                />
+              </div>
+
+              <div className="p-6 flex flex-col gap-3">
+                <p className="text-xs text-gray-500 font-semibold uppercase">Producto</p>
+                <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedProduct.nombre}</h3>
+                <p className="text-lg font-bold text-blue-700">${selectedProduct.precio}</p>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                  {selectedProduct.descripcion || "Sin descripción disponible."}
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-bold">
+                  <span
+                    className={`px-3 py-1 rounded-full ${
+                      selectedProduct.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : "Sin stock"}
+                  </span>
+                  {selectedProduct.rating && (
+                    <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">⭐ {selectedProduct.rating}</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <button
+                    onClick={() => agregarAlCarrito(selectedProduct)}
+                    disabled={selectedProduct.stock <= 0}
+                    className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition ${
+                      selectedProduct.stock > 0
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-300 text-white cursor-not-allowed"
+                    }`}
+                  >
+                    🛒 Agregar al carrito
+                  </button>
+                  <button
+                    onClick={() => handleWhatsApp(selectedProduct.nombre)}
+                    className="flex-1 px-4 py-3 rounded-lg font-bold text-sm bg-green-500 text-white hover:bg-green-600 transition"
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

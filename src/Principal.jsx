@@ -19,10 +19,16 @@ function Principal() {
   const [categoriaFiltro, setCategoriaFiltro] = useState(null);
 
   // Función para renderizar la página actual
+  const handleProductClickHome = (producto) => {
+    setBusquedaHeader(producto?.nombre || "");
+    setCategoriaFiltro(producto?.categoria || null);
+    setPaginaActual("tienda");
+  };
+
   const renderPagina = () => {
     switch (paginaActual) {
       case "inicio":
-        return <Inicio onNavigate={setPaginaActual} onCategoryClick={setCategoriaFiltro} />;
+        return <Inicio onNavigate={setPaginaActual} onCategoryClick={setCategoriaFiltro} onProductClickGoToTienda={handleProductClickHome} />;
       case "tienda":
         return <Tienda busquedaInicial={busquedaHeader} categoriaSeleccionada={categoriaFiltro} />;
       case "nosotros":

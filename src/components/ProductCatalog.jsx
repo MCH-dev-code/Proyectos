@@ -4,10 +4,11 @@ import { CarritoContext } from "../context/CarritoContext.jsx";
 import { WishlistContext } from "../context/WishlistContext.jsx";
 import ApiService from "../services/ApiService.js";
 
-const ProductCatalog = () => {
+const ProductCatalog = ({ onNavigateToTienda, disableInteractions = false }) => {
   const [products, setProducts] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Cargar productos de la API
   useEffect(() => {
@@ -15,7 +16,8 @@ const ProductCatalog = () => {
       try {
         setCargando(true);
         const data = await ApiService.getProductos();
-        setProducts(data);
+        const destacados = data.filter((p) => p?.destacado === true || p?.destacado === 1 || p?.featured === true);
+        setProducts(destacados.length ? destacados : data.slice(0, 8));
         setErrorCarga(null);
       } catch (err) {
         console.error('Error cargando productos:', err);
@@ -29,7 +31,8 @@ const ProductCatalog = () => {
             imagen: "https://p2-ofp.static.pub/fes/cms/2022/10/10/9er9vj7fkv909z7mkyv8006u6m6q0n540450.png",
             stock: 5,
             rating: 4.5,
-            reviews: 23
+            reviews: 23,
+            destacado: true
           },
           {
             id: 2,
@@ -38,7 +41,8 @@ const ProductCatalog = () => {
             imagen: "https://www.pngarts.com/files/1/Monitor-PNG-HD-Image.png",
             stock: 8,
             rating: 4.8,
-            reviews: 45
+            reviews: 45,
+            destacado: true
           },
           {
             id: 3,
@@ -47,7 +51,8 @@ const ProductCatalog = () => {
             imagen: "https://images.unsplash.com/photo-1587829191301-7ac7ef1912cb?w=300&h=300&fit=crop",
             stock: 15,
             rating: 4.9,
-            reviews: 67
+            reviews: 67,
+            destacado: true
           },
           {
             id: 4,
@@ -56,7 +61,8 @@ const ProductCatalog = () => {
             imagen: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=300&h=300&fit=crop",
             stock: 20,
             rating: 4.3,
-            reviews: 34
+            reviews: 34,
+            destacado: true
           },
           {
             id: 5,
@@ -65,7 +71,8 @@ const ProductCatalog = () => {
             imagen: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=300&h=300&fit=crop",
             stock: 50,
             rating: 4.4,
-            reviews: 12
+            reviews: 12,
+            destacado: true
           }
         ]);
       } finally {
@@ -81,6 +88,30 @@ const ProductCatalog = () => {
   const { agregarAWishlist, eliminarDelWishlist, estaEnWishlist } = useContext(WishlistContext);
   const [toast, setToast] = useState(null);
   const [showCoupon, setShowCoupon] = useState({});
+
+  useEffect(() => {
+    if (disableInteractions) {
+      setSelectedProduct(null);
+    }
+  }, [disableInteractions]);
+
+  const handleCardKeyDown = (e, product) => {
+    if (disableInteractions) return;
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick(product);
+    }
+  };
+
+  const handleCardClick = (product) => {
+    if (disableInteractions) return;
+    if (onNavigateToTienda) {
+      onNavigateToTienda(product);
+      return;
+    }
+    setSelectedProduct(product);
+  };
 
   const handleWhatsApp = (productName) => {
     const message = `Hola, estoy interesado en el producto: ${productName}`;
@@ -152,7 +183,7 @@ const ProductCatalog = () => {
 
       <div className="max-w-7xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-8">
-          Catálogo de Productos
+          Productos destacados
         </h2>
 
         {/* Estado de carga */}
@@ -172,9 +203,13 @@ const ProductCatalog = () => {
         {!cargando && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => (
-              <div
+              <article
+                role={disableInteractions ? undefined : "button"}
+                tabIndex={disableInteractions ? -1 : 0}
                 key={product.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-blue-200 transition flex flex-col h-full relative"
+                className={`text-left bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition flex flex-col h-full relative ${disableInteractions ? 'pointer-events-none' : 'cursor-pointer hover:shadow-lg hover:border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500'}`}
+                onClick={disableInteractions ? undefined : () => handleCardClick(product)}
+                onKeyDown={disableInteractions ? undefined : (e) => handleCardKeyDown(e, product)}
               >
               {/* Badge stock */}
               {product.stock <= 0 && (
@@ -186,7 +221,7 @@ const ProductCatalog = () => {
               {/* Wishlist Button */}
               {usuarioActual && (
                 <button
-                  onClick={() => handleToggleWishlist(product)}
+                  onClick={(e) => { e.stopPropagation(); handleToggleWishlist(product); }}
                   className={`absolute top-2 left-2 z-10 text-xl transition ${
                     estaEnWishlist(product.id) ? "text-red-500" : "text-gray-300 hover:text-red-500"
                   }`}
@@ -236,7 +271,7 @@ const ProductCatalog = () => {
                 <div className="mt-auto space-y-2">
                   {usuarioActual ? (
                     <button
-                      onClick={() => handleAgregarCarrito(product)}
+                      onClick={(e) => { e.stopPropagation(); handleAgregarCarrito(product); }}
                       disabled={product.stock <= 0}
                       className={`w-full px-3 py-2 rounded text-xs md:text-sm font-bold transition ${
                         product.stock > 0
@@ -255,18 +290,79 @@ const ProductCatalog = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => handleWhatsApp(product.nombre)}
+                    onClick={(e) => { e.stopPropagation(); handleWhatsApp(product.nombre); }}
                     className="w-full bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-xs md:text-sm font-bold transition"
                   >
                     💬 WhatsApp
                   </button>
                 </div>
               </div>
-            </div>
+              </article>
             ))}
           </div>
         )}
       </div>
+
+      {!disableInteractions && !onNavigateToTienda && selectedProduct && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4" onClick={() => setSelectedProduct(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              onClick={() => setSelectedProduct(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="bg-gray-100 flex items-center justify-center p-6">
+                <img
+                  src={selectedProduct.imagen || 'https://via.placeholder.com/400x400?text=Sin+Imagen'}
+                  alt={selectedProduct.nombre}
+                  className="object-contain max-h-80"
+                />
+              </div>
+
+              <div className="p-6 flex flex-col gap-3">
+                <p className="text-xs text-gray-500 font-semibold uppercase">Producto</p>
+                <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedProduct.nombre}</h3>
+                <p className="text-lg font-bold text-blue-700">${selectedProduct.precio}</p>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                  {selectedProduct.descripcion || 'Sin descripción disponible.'}
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs font-bold">
+                  <span className={`px-3 py-1 rounded-full ${selectedProduct.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {selectedProduct.stock > 0 ? `${selectedProduct.stock} unidades` : 'Sin stock'}
+                  </span>
+                  {selectedProduct.rating && (
+                    <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">⭐ {selectedProduct.rating}</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <button
+                    onClick={() => handleAgregarCarrito(selectedProduct)}
+                    disabled={selectedProduct.stock <= 0 || !usuarioActual}
+                    className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition ${
+                      selectedProduct.stock > 0 && usuarioActual
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 text-white cursor-not-allowed'
+                    }`}
+                  >
+                    🛒 {usuarioActual ? 'Agregar al carrito' : 'Inicia sesión'}
+                  </button>
+                  <button
+                    onClick={() => handleWhatsApp(selectedProduct.nombre)}
+                    className="flex-1 px-4 py-3 rounded-lg font-bold text-sm bg-green-500 text-white hover:bg-green-600 transition"
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
